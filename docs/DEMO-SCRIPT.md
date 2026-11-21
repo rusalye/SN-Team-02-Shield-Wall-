@@ -14,6 +14,10 @@ Preparation: open `http://127.0.0.1:9000/present` as the opening screen (it expl
 | 5:15 | Dashboard ban table (or `make attack` again, which is now answered with `blocked-ip`); point at the ban expiry and escalation (5 min, 30 min, 24 h) | "Bans escalate for repeat offenders and reload nginx gracefully, with no Docker socket mounted." |
 | 5:45 | Close | "Reproducible with `make up && make demo`, 12 unit tests for the engine, full docs in the repo." |
 
+## Interactive option (replaces minutes 2:15 to 4:00 if time allows)
+
+Open the Attack Console at `http://127.0.0.1:8501`. Leave "Select all" on and press **Run selected attacks** to show the full set with live verdicts, or hand the mouse to a judge: untick everything, pick one class, or use "Craft your own request" to type a payload. Show the **Live defense view** tab updating as bans appear, then click **Unban all**.
+
 ## Fallbacks
 
 * If the stack will not start: show the saved `reports/` files and dashboard screenshots, then walk through the architecture diagram.

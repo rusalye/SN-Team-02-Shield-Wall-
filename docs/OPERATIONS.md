@@ -19,6 +19,10 @@
 
 Changing `.env` values needs a container recreate: `docker compose up -d --force-recreate waf sentinel`. `make mode-*` does this for the mode.
 
+## 1a. Attack Console (Streamlit, `http://127.0.0.1:8501`)
+
+Runs as the `console` service with fixed IP `172.28.0.102` on the `edge` and `mgmt` networks. It imports the attack catalog from `lab/tests/attack_replay.py`, so it matches `make attack`. Tabs: **Attack lab** (select all or by class, tick individual attacks, brute-force attempt count, pause between requests, free-form request builder, CSV export), **Live defense view** (refreshes every 3 s from Sentinel), **How it works**. The sidebar shows the current mode and an "Unban all" button. The target host is fixed to the lab WAF, so it cannot be pointed elsewhere from the UI. The console's IP is deliberately not allowlisted, so its attacks trigger real auto-bans; click "Unban all" between runs. It is bound to loopback only and has no authentication, so do not expose port 8501.
+
 ## 2. Sentinel HTTP API (`http://127.0.0.1:9000`)
 
 | Method and path | Purpose |

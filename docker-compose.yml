@@ -60,6 +60,24 @@ services:
       - "127.0.0.1:${SENTINEL_PORT:-9000}:9000"
     networks: [mgmt]
 
+  # ---- Attack Console: Streamlit UI to pick attacks, fire them, and watch Sentinel react ----
+  console:
+    build: ./console
+    restart: unless-stopped
+    depends_on: [waf, sentinel]
+    environment:
+      TARGET: https://shield.local
+      CA_BUNDLE: /certs/ca.crt
+      SENTINEL_URL: http://sentinel:9000
+      SENTINEL_TOKEN: ${SENTINEL_TOKEN:-}
+    volumes: ["./lab/tests:/tests:ro", "./certs:/certs:ro"]
+    ports: ["127.0.0.1:${CONSOLE_PORT:-8501}:8501"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      edge: {ipv4_address: 172.28.0.102}   # not allowlisted, so its attacks really get banned
+      mgmt: {}
+
   # ---- Lab traffic generators (separate IPs so a ban hits only the attacker) ----
   attacker:
     profiles: ["lab"]

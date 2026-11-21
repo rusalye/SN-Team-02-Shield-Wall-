@@ -17,7 +17,7 @@ The expected results below are the design intent, derived from the code and conf
 | A9 | Benign client unaffected by the attacker's ban | `make attack && make benign` | benign still passes (different source IP) | |
 | A10 | Alert summary by attack type | `make report && cat reports/alert_summary.md` | table with SQLi, XSS, path traversal, command injection, scanner, brute force, honeypot, virtual patch | |
 | A11 | Logs centralised | `docker compose exec sentinel ls -l /var/log/shield` | `access.json`, `modsec_audit.json`, `nginx_error.log` | |
-| A12 | Sentinel logic | `make test` | 12 tests pass, no Docker needed | |
+| A12 | Sentinel and console logic | `make test` | 12 Sentinel + 4 console tests pass, no Docker needed | |
 
 `make demo` runs A5 to A8 and A10 in order and writes the evidence to `reports/`.
 

@@ -8,7 +8,7 @@ certs:
 
 up: certs
 	$(COMPOSE) up -d --build
-	@echo "App via WAF: https://localhost:8443   Dashboard: $(SENTINEL)"
+	@echo "App via WAF: https://localhost:8443   Dashboard: $(SENTINEL)   Attack Console: http://127.0.0.1:8501"
 
 down:
 	$(COMPOSE) --profile lab down
@@ -45,6 +45,7 @@ fp:
 
 test:
 	cd sentinel && python3 -m unittest discover -s tests -v
+	cd console && python3 -m unittest discover -s tests -v
 
 logs:
 	$(COMPOSE) logs -f waf sentinel

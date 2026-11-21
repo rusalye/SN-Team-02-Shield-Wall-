@@ -22,7 +22,8 @@ A legacy application cannot be patched this week, so ShieldWall protects it at t
 | 4 | **Three-mode switch (`off` / `detect` / `on`).** | A live before/after demo: the same attacks succeed with the WAF off and fail with it on. |
 | 5 | **Evidence mapped to standards.** Every alert carries ATT&CK technique, CWE and CAPEC; Sentinel exports an ATT&CK Navigator layer and a Markdown alert summary. | Matches the "alert summary by attack type" deliverable and the judges' mapping sheet. |
 | 6 | **Hardened by design.** No Docker socket mount, dropped capabilities, `no-new-privileges`, backend network is `internal`, client-supplied `X-Forwarded-For` is overwritten. | The protection layer is not itself a weak link. |
-| 7 | **One-command reproducibility.** `make up && make demo`. | Judges can re-run everything on their own laptop. |
+| 7 | **Interactive Attack Console.** A Streamlit UI where a reviewer selects attack classes or individual attacks (or all), crafts their own request, fires them, and watches blocks, bans and ATT&CK mapping update live. | Judges drive the demo themselves instead of watching a script. |
+| 8 | **One-command reproducibility.** `make up && make demo`. | Judges can re-run everything on their own laptop. |
 
 ## Quickstart
 
@@ -89,6 +90,7 @@ shieldwall/
 │   └── modsec/               # modsecurity.conf, main.conf.template, shield-setup.conf,
 │       └── rules-before/ (00-honeypot, 10-juiceshop-exclusions, 20-virtual-patches) · rules-after/
 ├── sentinel/sentinel/        # engine, tailer, store, attackmap, insights, api, nginx_ctl, static/dashboard.html
+├── console/                  # Streamlit Attack Console (app.py UI, lab.py logic, tests/)
 ├── lab/tests/                # attack_replay.py, benign_replay.py, common.py
 ├── scripts/                  # gen_certs.sh, set_mode.sh, demo.sh
 ├── certs/  reports/          # generated, git-ignored
