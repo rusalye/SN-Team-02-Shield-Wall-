@@ -23,3 +23,4 @@ BAN_STEPS = [int(x) for x in _s("BAN_STEPS", "300,1800,86400").split(",") if x.s
 ALLOWLIST = {x.strip() for x in _s("ALLOWLIST", "127.0.0.1,::1").split(",") if x.strip()}
 
 LOGIN_PATHS = ("/rest/user/login", "/rest/user/reset-password")
+REPORT_DIR = _s("REPORT_DIR", "/reports")

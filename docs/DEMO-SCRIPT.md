@@ -1,6 +1,6 @@
 # Live demo script (6 minutes)
 
-Preparation: stack running, `make unban`, dashboard open at `http://127.0.0.1:9000` on a second window, terminal font large, `reports/` cleared with `make clean && make up`.
+Preparation: open `http://127.0.0.1:9000/present` as the opening screen (it explains the design and fills in the before/after and scorecard as the demo runs); stack running, `make unban`, dashboard open at `http://127.0.0.1:9000` on a second window, terminal font large, `reports/` cleared with `make clean && make up`.
 
 | Time | Do | Say |
 |---|---|---|

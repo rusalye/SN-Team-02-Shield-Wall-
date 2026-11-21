@@ -5,7 +5,21 @@ from urllib.parse import parse_qs, urlparse
 
 from . import config, insights
 
-STATIC = os.path.join(os.path.dirname(__file__), "static", "dashboard.html")
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+STATIC = os.path.join(STATIC_DIR, "dashboard.html")
+EVIDENCE = ("1_attack_baseline_waf_off", "2_benign_waf_on", "3_attack_waf_on")
+
+
+def load_evidence():
+    """Replay reports written by `make demo`; missing files are simply absent."""
+    out = {}
+    for name in EVIDENCE:
+        try:
+            with open(os.path.join(config.REPORT_DIR, name + ".json")) as fh:
+                out[name] = json.load(fh)
+        except (OSError, ValueError):
+            pass
+    return out
 
 
 def make_server(store, engine):
@@ -33,6 +47,11 @@ def make_server(store, engine):
             if p == "/":
                 with open(STATIC, "rb") as fh:
                     return self._send(200, fh.read(), "text/html")
+            if p == "/present":
+                with open(os.path.join(STATIC_DIR, "presenter.html"), "rb") as fh:
+                    return self._send(200, fh.read(), "text/html")
+            if p == "/api/evidence":
+                return self._send(200, load_evidence())
             if p == "/healthz":
                 return self._send(200, "ok", "text/plain")
             if p == "/api/summary":

@@ -55,6 +55,7 @@ services:
       - shield-logs:/var/log/shield:ro
       - shield-dynamic:/etc/nginx/dynamic
       - sentinel-data:/data
+      - ./reports:/reports:ro     # demo evidence for the presenter view
     ports:
       - "127.0.0.1:${SENTINEL_PORT:-9000}:9000"
     networks: [mgmt]

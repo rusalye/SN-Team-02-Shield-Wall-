@@ -27,6 +27,8 @@ Changing `.env` values needs a container recreate: `docker compose up -d --force
 | `GET /api/summary` | KPIs, by-type breakdown, top IPs and rules, techniques, timeline, bans |
 | `GET /api/events?limit=50&ip=<ip>&blocked=1` | Recent events (limit up to 1000) |
 | `GET /api/bans` | Active bans |
+| `GET /present` | Presenter view: architecture, layer map, before/after, scorecard |
+| `GET /api/evidence` | Replay reports from `./reports` (mounted read-only) |
 | `GET /report.md` | Alert summary in Markdown |
 | `GET /api/navigator-layer` | ATT&CK Navigator layer |
 | `GET /metrics` | Prometheus metrics |
