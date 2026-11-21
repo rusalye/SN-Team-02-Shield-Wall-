@@ -1,0 +1,9 @@
+# Rendered by entrypoint.sh. Load order matters: engine -> base -> CRS setup -> our rules -> CRS -> our post rules.
+SecRuleEngine ${RULE_ENGINE}
+Include /etc/nginx/modsec/modsecurity.conf
+Include /opt/crs/crs-setup.conf.example
+SecAction "id:1000001,phase:1,pass,nolog,t:none,setvar:tx.blocking_paranoia_level=${PARANOIA},setvar:tx.detection_paranoia_level=${PARANOIA},setvar:tx.inbound_anomaly_score_threshold=${INBOUND_THRESHOLD},setvar:tx.outbound_anomaly_score_threshold=4,setvar:tx.early_blocking=1"
+Include /etc/nginx/modsec/shield-setup.conf
+Include /etc/nginx/modsec/rules-before/*.conf
+Include /opt/crs/rules/*.conf
+Include /etc/nginx/modsec/rules-after/*.conf
