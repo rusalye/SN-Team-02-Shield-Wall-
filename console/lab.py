@@ -49,6 +49,42 @@ def run_item(sess, item, attempts=40):
                 Exploited="YES" if r["exploited"] else "no", Control=ctl, ATTCK=tech,
                 Note=r.get("note") or r.get("action", ""))
 
+def run_benign(sess, count=50):
+    """Send exactly count normal, read-only application requests."""
+    cases = [
+        ("Home page", "GET", "/", {}),
+        ("Robots.txt", "GET", "/robots.txt", {}),
+        ("Application version", "GET", "/rest/admin/application-version", {}),
+        ("Application configuration", "GET", "/rest/admin/application-configuration", {}),
+        ("Product catalogue", "GET", "/api/Products", {}),
+        ("Search apple", "GET", "/rest/products/search", {"params": {"q": "apple"}}),
+        ("Search banana", "GET", "/rest/products/search", {"params": {"q": "banana"}}),
+        ("Search orange", "GET", "/rest/products/search", {"params": {"q": "orange juice"}}),
+        ("Product detail", "GET", "/api/Products/1", {}),
+        ("Product reviews", "GET", "/rest/products/1/reviews", {}),
+        ("Languages", "GET", "/rest/languages", {}),
+        ("Captcha", "GET", "/rest/captcha/", {}),
+        ("Stock quantities", "GET", "/api/Quantitys/", {}),
+    ]
+
+    results = []
+    for i in range(count):
+        name, method, path, kwargs = cases[i % len(cases)]
+        r, ms = send(sess, method, path, **kwargs)
+
+        failed = isinstance(r, Exception)
+        blocked = False if failed else is_blocked(r)
+
+        results.append({
+            "Request": i + 1,
+            "Endpoint": name,
+            "Status": 0 if failed else r.status_code,
+            "Verdict": "FAILED" if failed else ("BLOCKED" if blocked else "ALLOWED"),
+            "Action": "" if failed else shield_action(r),
+            "Time (ms)": ms,
+        })
+
+    return results
 
 def ban_active(sess):
     """After an attack run the source should be auto-banned: a harmless request is now refused."""
