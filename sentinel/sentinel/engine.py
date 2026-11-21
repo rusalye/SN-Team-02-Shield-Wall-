@@ -29,6 +29,9 @@ def parse_audit(line):
         if rid == "949110":
             hit = SCORE_RE.search(text)
             total_score = int(hit.group(1)) if hit else total_score
+    if not rules:
+        return None
+
     primary, types, techniques, pts = attackmap.classify(rules)
     status = int(resp.get("http_code") or 0)
     visible = [r for r in rules if not r["id"].startswith(attackmap.EVALUATION_PREFIXES)]

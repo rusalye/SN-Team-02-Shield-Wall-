@@ -47,6 +47,9 @@ def make_server(store, engine):
             if p == "/":
                 with open(STATIC, "rb") as fh:
                     return self._send(200, fh.read(), "text/html")
+            if p in ("/alerts", "/attack-layer", "/metrics-view"):
+                with open(os.path.join(STATIC_DIR, "insights.html"), "rb") as fh:
+                    return self._send(200, fh.read(), "text/html")
             if p == "/present":
                 with open(os.path.join(STATIC_DIR, "presenter.html"), "rb") as fh:
                     return self._send(200, fh.read(), "text/html")

@@ -50,7 +50,7 @@ def classify(rules):
         if t:
             pts[t] = pts.get(t, 0) + SEV_POINTS.get(r.get("sev", 5), 2) + bonus
     if not pts:
-        return "other", [], ["T1190"], 0
+        return "other", [], [], 0
     primary = max(pts, key=lambda k: (pts[k], -PRIORITY.index(k)))
     techniques = sorted({t for k in pts for t in TYPES[k]["attack"]})
     return primary, sorted(pts), techniques, sum(pts.values())

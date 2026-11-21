@@ -1,0 +1,255 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShieldWall Insights</title>
+<style>
+:root {
+  --bg:#f3f1ec; --panel:#fcfbf8; --ink:#1b1f23;
+  --mute:#667078; --line:#dcd8cf; --blue:#14508c;
+  --red:#b3261e; --green:#1f7a45; --amber:#a15c00;
+}
+@media(prefers-color-scheme:dark) {
+  :root {
+    --bg:#10151a; --panel:#171e25; --ink:#e4e8ec;
+    --mute:#8793a0; --line:#26303a; --blue:#5aa7ee;
+    --red:#ff7b72; --green:#4cc38a; --amber:#e3a94a;
+  }
+}
+* {box-sizing:border-box}
+body {
+  margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.5 "IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+}
+header {
+  display:flex;flex-wrap:wrap;gap:12px;align-items:center;
+  justify-content:space-between;padding:20px 28px;
+  border-bottom:1px solid var(--line);
+}
+h1 {font-size:20px;font-weight:600;margin:0}
+nav a {color:var(--blue);margin-left:16px;text-decoration:none;font-size:13px}
+nav a:hover {text-decoration:underline}
+main {max-width:1280px;margin:auto;padding:24px 28px;display:grid;gap:20px}
+h2 {font-size:15px;margin:0 0 14px}
+h3 {font-size:14px;margin:0 0 8px}
+section {background:var(--panel);border:1px solid var(--line);padding:20px;overflow-x:auto}
+.grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.kpi {background:var(--panel);border:1px solid var(--line);padding:18px}
+.kpi b {display:block;font-size:27px;font-family:ui-monospace,monospace}
+.kpi span,.muted {color:var(--mute);font-size:13px}
+table {width:100%;border-collapse:collapse;font-size:13px}
+th,td {text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--line)}
+th {color:var(--mute);font-weight:500}
+.chip {display:inline-block;border:1px solid var(--line);padding:3px 9px;margin:3px;font:12px ui-monospace,monospace}
+.bar {display:grid;grid-template-columns:180px 1fr 45px;gap:12px;align-items:center;margin:12px 0;font-size:13px}
+.bar i {height:11px;background:var(--red);display:block}
+.bar em {font-style:normal;text-align:right;color:var(--mute)}
+a.download {color:var(--blue);font-size:13px;text-decoration:none}
+a.download:hover {text-decoration:underline}
+pre {white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.7 ui-monospace,monospace;color:var(--ink)}
+.status {padding:3px 10px;border:1px solid currentColor;border-radius:20px;font-size:12px}
+.on {color:var(--green)} .detect {color:var(--amber)} .off {color:var(--red)}
+.empty {color:var(--mute);font-size:13px}
+@media(max-width:600px) {
+ header {padding:16px}
+ nav a {margin-left:8px}
+ main {padding:16px}
+ .bar {grid-template-columns:120px 1fr 35px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>ShieldWall Sentinel <span id="mode" class="status"></span></h1>
+  <nav>
+    <a href="/">Dashboard</a>
+    <a href="/alerts">Alert summary</a>
+    <a href="/attack-layer">ATT&CK layer</a>
+    <a href="/metrics-view">Metrics</a>
+  </nav>
+</header>
+
+<main>
+  <div>
+    <h2 id="pageTitle">Loading...</h2>
+    <p class="muted" id="subtitle"></p>
+  </div>
+  <div id="content"><p class="empty">Loading ShieldWall data...</p></div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+
+const page = location.pathname;
+const fmt = n => Number(n || 0).toLocaleString();
+const section = (title,body) =>
+  `<section><h2>${title}</h2>${body}</section>`;
+
+async function get(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+  return r.json();
+}
+
+function modeLabel(mode) {
+  $("mode").textContent = mode === "on" ? "WAF blocking" :
+    mode === "detect" ? "Detect only" : "WAF off";
+  $("mode").className = "status " + (mode || "off");
+}
+
+async function alerts() {
+  $("pageTitle").textContent = "Alert Summary";
+  $("subtitle").textContent = "Live security events, triggered rules and automatic bans.";
+
+  const s = await get("/api/summary");
+  modeLabel(s.mode);
+
+  const t = s.totals;
+  const rate = t.requests ? (100*t.blocked/t.requests).toFixed(1) : "0.0";
+
+  let html = `<div class="grid">
+    <div class="kpi"><b>${fmt(t.requests)}</b><span>Total requests</span></div>
+    <div class="kpi"><b>${fmt(t.blocked)}</b><span>Blocked at edge</span></div>
+    <div class="kpi"><b>${rate}%</b><span>Edge block rate</span></div>
+    <div class="kpi"><b>${fmt(t.events)}</b><span>Attack events</span></div>
+    <div class="kpi"><b>${fmt(t.active_bans)}</b><span>Active bans</span></div>
+  </div>`;
+
+  const rows = s.by_type.map(x => `<tr>
+    <td>${esc(x.label)}</td><td>${fmt(x.count)}</td>
+    <td>${fmt(x.blocked)}</td><td>${fmt(x.ips)}</td>
+    <td>${esc(x.attack.join(", "))}</td>
+    <td>${esc(x.cwe || "-")}</td>
+    <td>${esc(x.capec || "-")}</td>
+    <td>${esc(x.top_rules.join(", ") || "-")}</td>
+  </tr>`).join("");
+
+  html += section("Alerts by attack type",
+    `<table><thead><tr>
+    <th>Attack type</th><th>Events</th><th>Blocked</th>
+    <th>Sources</th><th>ATT&CK</th><th>CWE</th><th>CAPEC</th><th>Rules</th>
+    </tr></thead><tbody>${rows || '<tr><td colspan="8">No events recorded.</td></tr>'}</tbody></table>`);
+
+  const ruleRows = s.top_rules.map(x => `<tr>
+    <td>${esc(x.id)}</td><td>${fmt(x.count)}</td><td>${esc(x.msg)}</td>
+  </tr>`).join("");
+
+  html += section("Top triggered rules",
+    `<table><thead><tr><th>Rule ID</th><th>Hits</th><th>Description</th></tr></thead>
+    <tbody>${ruleRows || '<tr><td colspan="3">No rules recorded.</td></tr>'}</tbody></table>`);
+
+  const banRows = s.bans.map(x => `<tr>
+    <td>${esc(x.ip)}</td><td>${fmt(x.offenses)}</td>
+    <td>${esc(x.reason)}</td>
+    <td>${new Date(x.until*1000).toLocaleString()}</td>
+  </tr>`).join("");
+
+  html += section("Automatic bans",
+    `<table><thead><tr><th>Source IP</th><th>Offenses</th><th>Reason</th><th>Banned until</th></tr></thead>
+    <tbody>${banRows || '<tr><td colspan="4">No active bans.</td></tr>'}</tbody></table>`);
+
+  html += `<p><a class="download" href="/report.md" download="alert_summary.md">Download Markdown alert report →</a></p>`;
+  $("content").innerHTML = html;
+}
+
+async function attackLayer() {
+  $("pageTitle").textContent = "MITRE ATT&CK Layer";
+  $("subtitle").textContent = "Observed techniques mapped from ShieldWall security events.";
+
+  const [layer,s] = await Promise.all([
+    get("/api/navigator-layer"),get("/api/summary")
+  ]);
+  modeLabel(s.mode);
+
+  const rows = layer.techniques.map(x => {
+    const info = s.techniques.find(t => t.id === x.techniqueID);
+    return `<tr>
+      <td><strong>${esc(x.techniqueID)}</strong></td>
+      <td>${esc(info?.name || "Technique")}</td>
+      <td>${fmt(x.score)}</td>
+      <td>${esc(x.comment)}</td>
+    </tr>`;
+  }).join("");
+
+  let html = `<div class="grid">
+    <div class="kpi"><b>${layer.techniques.length}</b><span>Techniques observed</span></div>
+    <div class="kpi"><b>${layer.domain === "enterprise-attack" ? "Enterprise" : esc(layer.domain)}</b><span>ATT&CK domain</span></div>
+    <div class="kpi"><b>${esc(layer.versions.attack)}</b><span>ATT&CK version in export</span></div>
+  </div>`;
+
+  html += section("Observed techniques",
+    `<table><thead><tr><th>Technique ID</th><th>Name</th><th>Events</th><th>Evidence</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="4">No mapped techniques yet.</td></tr>'}</tbody></table>`);
+
+  html += section("Navigator layer information",
+    `<p>${esc(layer.description)}</p>
+    <p class="muted">Navigator version: ${esc(layer.versions.navigator)} · Layer version: ${esc(layer.versions.layer)}</p>
+    <p class="muted">Scores represent observed event counts, not severity ratings.</p>`);
+
+  html += `<p><a class="download" href="/api/navigator-layer" download="attack_navigator_layer.json">Download ATT&CK Navigator JSON →</a></p>`;
+  $("content").innerHTML = html;
+}
+
+async function metricsView() {
+  $("pageTitle").textContent = "ShieldWall Metrics";
+  $("subtitle").textContent = "Live operational counters in Prometheus exposition format.";
+
+  const [raw,s] = await Promise.all([
+    fetch("/metrics").then(r => {
+      if (!r.ok) throw new Error("Metrics endpoint returned HTTP " + r.status);
+      return r.text();
+    }),
+    get("/api/summary")
+  ]);
+  modeLabel(s.mode);
+
+  const t = s.totals;
+  const rate = t.requests ? (100*t.blocked/t.requests).toFixed(1) : "0.0";
+
+  let html = `<div class="grid">
+    <div class="kpi"><b>${fmt(t.requests)}</b><span>Requests total</span></div>
+    <div class="kpi"><b>${fmt(t.blocked)}</b><span>Blocked requests</span></div>
+    <div class="kpi"><b>${rate}%</b><span>Block rate</span></div>
+    <div class="kpi"><b>${fmt(t.active_bans)}</b><span>Active bans</span></div>
+    <div class="kpi"><b>${fmt(t.events)}</b><span>Attack events</span></div>
+  </div>`;
+
+  const max = Math.max(1,...s.by_type.map(x=>x.count));
+  const bars = s.by_type.map(x => `<div class="bar">
+    <span>${esc(x.label)}</span>
+    <i style="width:${100*x.count/max}%"></i>
+    <em>${fmt(x.count)}</em>
+  </div>`).join("");
+
+  html += section("Attack event distribution",
+    bars || '<p class="empty">No attack events recorded.</p>');
+
+  html += section("Prometheus metrics output",
+    `<p class="muted">Raw metrics exposed by the /metrics endpoint.</p><pre>${esc(raw)}</pre>`);
+
+  html += `<p><a class="download" href="/metrics" download="shieldwall_metrics.txt">Download metrics text →</a></p>`;
+  $("content").innerHTML = html;
+}
+
+async function init() {
+  try {
+    if (page === "/alerts") await alerts();
+    else if (page === "/attack-layer") await attackLayer();
+    else if (page === "/metrics-view") await metricsView();
+    else throw new Error("Unknown page");
+  } catch (e) {
+    $("pageTitle").textContent = "Unable to load insights";
+    $("content").innerHTML = `<section><p class="empty">${esc(e.message)}</p>
+      <p><a href="/">Return to dashboard</a></p></section>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
