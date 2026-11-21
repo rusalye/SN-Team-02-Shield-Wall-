@@ -50,9 +50,23 @@ def run_case(s, case):
     cls, name, method, path, kw, exploit = case
     r, ms = send(s, method, path, **kw)
     if isinstance(r, Exception):
-        return dict(cls=cls, name=name, status=0, blocked=False, exploited=False, ms=ms, note=type(r).__name__)
-    return dict(cls=cls, name=name, status=r.status_code, blocked=is_blocked(r), action=shield_action(r),
-                exploited=bool(exploit and not is_blocked(r) and exploit(r)), ms=ms, note="")
+        return dict(cls=cls, name=name, status=0, blocked=False,
+                    exploited=False, ms=ms, note=type(r).__name__)
+
+    blocked = is_blocked(r)
+    action = shield_action(r)
+
+    # Nginx rejects this encoded path before normal WAF processing.
+    if (name == "Encoded ../ to /etc/passwd"
+            and r.status_code == 400
+            and "<center>nginx</center>" in r.text):
+        blocked = True
+        action = "rejected-edge-400"
+
+    return dict(cls=cls, name=name, status=r.status_code,
+                blocked=blocked, action=action,
+                exploited=bool(exploit and not blocked and exploit(r)),
+                ms=ms, note="")
 
 
 def brute_force(s, attempts=40, tolerated=8):
