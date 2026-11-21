@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShieldWall Sentinel</title>
+<style>
+:root{--bg:#f3f1ec;--panel:#fcfbf8;--ink:#1b1f23;--mute:#667078;--line:#dcd8cf;--blue:#14508c;--red:#b3261e;--green:#1f7a45;--amber:#a15c00}
+@media(prefers-color-scheme:dark){:root{--bg:#10151a;--panel:#171e25;--ink:#e4e8ec;--mute:#8793a0;--line:#26303a;--blue:#5aa7ee;--red:#ff7b72;--green:#4cc38a;--amber:#e3a94a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans","Segoe UI",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 24px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:1px solid var(--line)}
+h1{font:600 20px "IBM Plex Sans",system-ui,sans-serif;margin:0;letter-spacing:.2px}
+h2{font-size:14px;font-weight:600;margin:0 0 12px}
+.pill{padding:3px 12px;border-radius:99px;font-weight:600;font-size:13px;border:1px solid currentColor}
+.on{color:var(--green)}.detect{color:var(--amber)}.off{color:var(--red)}
+nav a{color:var(--blue);margin-left:16px;text-decoration:none;font-size:13px}nav a:hover,nav a:focus-visible{text-decoration:underline}
+main{padding:20px 28px;display:grid;gap:20px;max-width:1280px;margin:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;border:1px solid var(--line);background:var(--panel)}
+.kpi{padding:16px 20px;border-right:1px solid var(--line)}.kpi:last-child{border-right:0}
+.kpi b{display:block;font:600 30px "IBM Plex Mono",ui-monospace,monospace;line-height:1.1}.kpi span{color:var(--mute);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px}
+section{background:var(--panel);border:1px solid var(--line);padding:18px 20px;overflow-x:auto}
+.bar{display:grid;grid-template-columns:170px 1fr 48px;gap:10px;align-items:center;margin:7px 0;font-size:13px}
+.bar i{display:block;height:10px;background:var(--red);opacity:.85}.bar em{font-style:normal;color:var(--mute);text-align:right}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:6px 10px 6px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mute);font-weight:500}td.u{max-width:300px;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-block;border:1px solid var(--line);padding:2px 9px;margin:0 6px 6px 0;font:12px "IBM Plex Mono",ui-monospace,monospace}
+button{font:inherit;font-size:12px;padding:2px 10px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.blk{color:var(--red)}.ok{color:var(--mute)}.empty{color:var(--mute);font-size:13px}
+</style>
+</head>
+<body>
+<header><h1>ShieldWall Sentinel <span id="mode" class="pill"></span></h1>
+<nav>
+<a href="/present"><b>Presenter view</b></a>
+<a href="/alerts">Alert summary</a>
+<a href="/attack-layer">ATT&amp;CK layer</a>
+<a href="/metrics-view">Metrics</a>
+</nav>
+</header>
+<main>
+<div class="kpis" id="kpis"></div>
+<div class="grid">
+<section><h2>Attacks by type</h2><div id="types"></div></section>
+<section><h2>Traffic, last 30 minutes (total vs blocked)</h2><svg id="tl" viewBox="0 0 400 130" width="100%" role="img" aria-label="traffic timeline"></svg></section>
+</div>
+<div class="grid">
+<section><h2>ATT&amp;CK techniques observed</h2><div id="tech"></div></section>
+<section><h2>Active bans</h2><div id="bans"></div></section>
+</div>
+<section><h2>Latest events</h2><table><thead><tr><th>Time</th><th>Source</th><th>Request</th><th>Class</th><th>Rules</th><th>Score</th><th>Result</th></tr></thead><tbody id="ev"></tbody></table></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const j=async u=>(await fetch(u)).json();
+async function unban(ip){await fetch("/api/unban",{method:"POST",body:JSON.stringify(ip==="*"?{all:true}:{ip})});tick()}
+window.unban=unban;
+function line(vals,max,color){const p=vals.map((v,i)=>`${(i*400/(vals.length-1)).toFixed(1)},${(120-v*110/max).toFixed(1)}`).join(" ");return `<polyline fill="none" stroke="${color}" stroke-width="2" points="${p}"/>`}
+async function tick(){
+ try{
+  const [s,ev]=await Promise.all([j("/api/summary"),j("/api/events?limit=14")]);
+  $("mode").textContent=s.mode==="on"?"blocking":s.mode==="detect"?"detect only":"WAF off";$("mode").className="pill "+s.mode;
+  const t=s.totals,r=t.requests?(100*t.blocked/t.requests).toFixed(1):"0.0";
+  $("kpis").innerHTML=[[t.requests,"requests"],[t.blocked,"blocked at the edge"],[r+"%","block rate"],[t.events,"attack events"],[t.active_bans,"active bans"]].map(k=>`<div class="kpi"><b>${esc(k[0])}</b><span>${k[1]}</span></div>`).join("");
+  const mx=Math.max(1,...s.by_type.map(x=>x.count));
+  $("types").innerHTML=s.by_type.length?s.by_type.map(x=>`<div class="bar"><span>${esc(x.label)}</span><i style="width:${100*x.count/mx}%"></i><em>${x.count}</em></div>`).join(""):'<p class="empty">No attacks recorded yet. Run <code>make attack</code>.</p>';
+  const tl=s.timeline,m=Math.max(1,...tl.map(x=>x.total));
+  $("tl").innerHTML=`<line x1="0" y1="120" x2="400" y2="120" stroke="var(--line)"/>`+line(tl.map(x=>x.total),m,"var(--blue)")+line(tl.map(x=>x.blocked),m,"var(--red)");
+  $("tech").innerHTML=s.techniques.length?s.techniques.map(x=>`<span class="chip" title="${esc(x.name)}">${esc(x.id)} &times; ${x.count}</span>`).join(""):'<p class="empty">Nothing mapped yet.</p>';
+  $("bans").innerHTML=s.bans.length?`<table><tbody>${s.bans.map(b=>`<tr><td>${esc(b.ip)}</td><td>offense #${b.offenses}</td><td>until ${new Date(b.until*1000).toLocaleTimeString()}</td><td><button onclick="unban('${esc(b.ip)}')">Unban</button></td></tr>`).join("")}</tbody></table>`:'<p class="empty">No source is banned.</p>';
+  $("ev").innerHTML=ev.map(e=>`<tr><td>${new Date(e.ts*1000).toLocaleTimeString()}</td><td>${esc(e.ip)}</td><td class="u" title="${esc(e.uri)}">${esc(e.method)} ${esc(e.uri)}</td><td>${esc(e.ptype)}</td><td>${esc(e.rules.slice(0,3).join(", "))}</td><td>${e.score}</td><td class="${e.blocked?"blk":"ok"}">${esc(e.action)}</td></tr>`).join("");
+ }catch(x){}
+}
+tick();setInterval(tick,3000);
+</script>
+</body>
+</html>

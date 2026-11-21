@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShieldWall: presenter view</title>
+<style>
+:root{--bg:#f3f1ec;--panel:#fcfbf8;--ink:#1b1f23;--mute:#667078;--line:#dcd8cf;--blue:#14508c;--red:#b3261e;--green:#1f7a45;--amber:#a15c00}
+@media(prefers-color-scheme:dark){:root{--bg:#10151a;--panel:#171e25;--ink:#e4e8ec;--mute:#8793a0;--line:#26303a;--blue:#5aa7ee;--red:#ff7b72;--green:#4cc38a;--amber:#e3a94a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "IBM Plex Sans","Segoe UI",system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;padding:16px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+h1{font-size:19px;margin:0}h2{font-size:15px;margin:0 0 4px}.sub{color:var(--mute);font-size:13px;margin:0 0 12px}
+nav a{color:var(--blue);margin-left:14px;font-size:13px;text-decoration:none}nav a:hover{text-decoration:underline}
+main{max-width:1180px;margin:auto;padding:20px 28px;display:grid;gap:20px}
+section{background:var(--panel);border:1px solid var(--line);padding:18px 20px;overflow-x:auto}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:7px 10px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mute);font-weight:500}
+.ok{color:var(--green);font-weight:600}.bad{color:var(--red);font-weight:600}.wait{color:var(--amber);font-weight:600}
+.big{font:600 34px "IBM Plex Mono",ui-monospace,monospace;line-height:1.1}.mute{color:var(--mute);font-size:13px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px}.cmp>div{border:1px solid var(--line);padding:14px}
+code{font:12px "IBM Plex Mono",ui-monospace,monospace}svg text{font:12px system-ui,sans-serif;fill:var(--ink)}svg .m{fill:var(--mute)}
+svg rect.n{fill:var(--panel);stroke:var(--line)}svg .hot{stroke:var(--blue);stroke-width:2}svg line,svg path{stroke:var(--mute);fill:none}
+</style></head><body>
+<header><h1>ShieldWall: how the solution works</h1><nav><a href="/">Live dashboard</a><a href="/report.md">Alert summary</a><a href="/api/navigator-layer">ATT&amp;CK layer</a></nav></header>
+<main>
+<section><h2>The problem and our answer</h2>
+<p class="sub">A legacy web app (OWASP Juice Shop) cannot be patched this week. We protect it at the edge, with controls that need no change to the app.</p>
+<div class="two"><div><b>Prevent.</b> TLS termination, ModSecurity v3 with OWASP CRS at paranoia level 2, three virtual patches for real Juice Shop flaws, decoy honeypot paths, per-IP rate limiting.</div>
+<div><b>Respond.</b> Sentinel reads the WAF logs, scores each source, bans repeat offenders with escalating durations (5 min, 30 min, 24 h), and reloads nginx with no Docker socket. <b>Prove.</b> Every alert is mapped to ATT&amp;CK, CWE and CAPEC.</div></div></section>
+
+<section><h2>Request path, with live counters</h2><p class="sub">Numbers come from Sentinel's logs right now.</p>
+<svg viewBox="0 0 1100 250" width="100%" role="img" aria-label="Architecture: client to nginx TLS, ModSecurity CRS, rate limit, Juice Shop; Sentinel feedback loop">
+<g><rect class="n" x="10" y="70" width="130" height="64"/><text x="75" y="98" text-anchor="middle">Client / attacker</text><text class="m" x="75" y="118" text-anchor="middle">HTTPS :8443</text></g>
+<g><rect class="n" x="190" y="70" width="140" height="64"/><text x="260" y="98" text-anchor="middle">1. nginx + TLS 1.2/1.3</text><text class="m" x="260" y="118" text-anchor="middle" id="nBan">banned IPs: -</text></g>
+<g><rect class="n hot" x="380" y="70" width="170" height="64"/><text x="465" y="98" text-anchor="middle">2. ModSecurity + CRS</text><text class="m" x="465" y="118" text-anchor="middle" id="nWaf">blocked: -</text></g>
+<g><rect class="n" x="600" y="70" width="140" height="64"/><text x="670" y="98" text-anchor="middle">3. Rate limit</text><text class="m" x="670" y="118" text-anchor="middle">login 5/min</text></g>
+<g><rect class="n" x="790" y="70" width="150" height="64"/><text x="865" y="98" text-anchor="middle">Juice Shop</text><text class="m" x="865" y="118" text-anchor="middle">internal network</text></g>
+<g><rect class="n hot" x="380" y="180" width="360" height="56"/><text x="560" y="204" text-anchor="middle">Sentinel: score, ban, ATT&amp;CK map</text><text class="m" x="560" y="223" text-anchor="middle" id="nEv">events: -</text></g>
+<path d="M140 102H190M330 102H380M550 102H600M740 102H790"/><path d="M465 134V180" stroke-dasharray="4 3"/><path d="M740 208H260V134" stroke-dasharray="4 3"/>
+<text class="m" x="480" y="160">logs</text><text class="m" x="270" y="170">blocklist + reload</text></svg></section>
+
+<section><h2>Which layer stopped which attack</h2><p class="sub">Counts are live. Standards references follow the problem statement's mapping.</p>
+<table><thead><tr><th>Attack class</th><th>Stopped by</th><th>ATT&amp;CK</th><th>Weakness</th><th>Events</th><th>Blocked</th></tr></thead><tbody id="layers"></tbody></table></section>
+
+<section><h2>Before and after (same attack script)</h2><p class="sub">From <code>make demo</code> evidence files. Run it once to fill this in.</p><div class="cmp" id="cmp"><div class="wait">No evidence yet. Run <code>make demo</code>.</div></div></section>
+
+<section><h2>PS6 requirement scorecard</h2><table><thead><tr><th>Requirement</th><th>How</th><th>Status</th></tr></thead><tbody id="score"></tbody></table></section>
+</main>
+<script>
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LAYERS={"sqli":["CRS 942xxx + JSON body inspection","T1190","CWE-89"],"xss":["CRS 941xxx","T1190","CWE-79"],"path-traversal":["CRS 930xxx + VPATCH-003","T1190","CWE-22"],
+"command-injection":["CRS 932xxx","T1190, T1059","CWE-78"],"scanner":["CRS 913xxx scanner signatures","T1595.002","-"],"brute-force":["nginx rate limit + Sentinel ban","T1110","CWE-307"],
+"virtual-patch":["Custom virtual patches","T1190","CWE-943 / CWE-94"],"honeypot":["Decoy paths, instant ban","T1595.003","CWE-200"]};
+const pill=(ok,t)=>`<span class="${ok===null?"wait":ok?"ok":"bad"}">${ok===null?"awaiting run":ok?"met":"not met"}${t?" ("+esc(t)+")":""}</span>`;
+async function j(u){try{return await (await fetch(u)).json()}catch(e){return null}}
+async function load(){
+const [s,ev]=await Promise.all([j("/api/summary"),j("/api/evidence")]);if(!s)return;
+const by=Object.fromEntries(s.by_type.map(x=>[x.type,x]));
+document.getElementById("nBan").textContent="banned IPs: "+s.totals.active_bans;
+document.getElementById("nWaf").textContent="blocked: "+s.totals.blocked+" of "+s.totals.requests;
+document.getElementById("nEv").textContent="events: "+s.totals.events+"  |  mode: "+s.mode;
+document.getElementById("layers").innerHTML=Object.entries(LAYERS).map(([k,v])=>{const b=by[k]||{count:0,blocked:0};
+return `<tr><td>${esc(k)}</td><td>${esc(v[0])}</td><td>${esc(v[1])}</td><td>${esc(v[2])}</td><td>${b.count}</td><td>${b.blocked}</td></tr>`}).join("");
+const a0=ev&&ev["1_attack_baseline_waf_off"],a1=ev&&ev["3_attack_waf_on"],b1=ev&&ev["2_benign_waf_on"];
+if(a0||a1)document.getElementById("cmp").innerHTML=
+`<div><b>WAF off</b><div class="big bad">${a0?a0.total-a0.blocked:"-"}/${a0?a0.total:"-"}</div><div class="mute">attack requests passed through; exploits that worked: ${a0?a0.exploited:"-"}</div></div>
+<div><b>WAF on</b><div class="big ok">${a1?a1.blocked:"-"}/${a1?a1.total:"-"}</div><div class="mute">attack requests blocked; exploits that worked: ${a1?a1.exploited:"-"}; benign allowed: ${b1?b1.allowed+"/"+b1.total+" ("+b1.allowed_pct.toFixed(1)+"%)":"-"}</div></div>`;
+const t=s.totals;
+const rows=[["TLS termination","nginx, TLS 1.2/1.3 only, AEAD ciphers, HSTS",true,"configuration"],
+["Block every attack request","CRS PL2 + custom rules",a1?a1.blocked===a1.total:null,a1?a1.blocked+"/"+a1.total:""],
+["Allow at least 95% benign","scoped exclusions, 27-request replay",b1?b1.allowed_pct>=95:null,b1?b1.allowed_pct.toFixed(1)+"%":""],
+["Rate limiting and automatic blocking","limit_req on login + Sentinel ban",a1?!!a1.auto_ban:null,a1?(a1.auto_ban?"attacker banned":"no ban seen"):""],
+["Centralised logs and alert summary by type","shared log volume, SQLite, /report.md",t.events>0?true:null,t.events+" events"],
+["Stretch: virtual patch","3 VPATCH rules",true,"configuration"],["Stretch: dashboard","live view + this page",true,"you are here"]];
+document.getElementById("score").innerHTML=rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${pill(r[2],r[3])}</td></tr>`).join("");}
+load();setInterval(load,5000);
+</script></body></html>
