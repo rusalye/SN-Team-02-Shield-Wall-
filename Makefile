@@ -1,7 +1,7 @@
 COMPOSE = docker compose
 SENTINEL = http://127.0.0.1:9000
 
-.PHONY: certs up down clean mode-on mode-detect mode-off benign attack demo report unban fp logs
+.PHONY: certs up down clean mode-on mode-detect mode-off benign attack demo report unban fp logs test
 
 certs:
 	./scripts/gen_certs.sh
@@ -42,6 +42,9 @@ unban:
 
 fp:
 	@curl -fs "$(SENTINEL)/api/events?ip=172.28.0.101&blocked=1&limit=20" | python3 -m json.tool
+
+test:
+	cd sentinel && python3 -m unittest discover -s tests -v
 
 logs:
 	$(COMPOSE) logs -f waf sentinel

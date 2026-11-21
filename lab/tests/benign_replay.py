@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Benign replay: 28 normal requests (browse, search, register, login with correct credentials, shop).
+"""Benign replay: 27 normal requests (browse, search, register, login with correct credentials, shop).
 Passes when at least 95% are NOT blocked by ShieldWall."""
 import argparse
 import random
