@@ -153,7 +153,7 @@ Sentinel serves a self-contained HTML dashboard at `/` and supporting views at `
 
 ## Request and event flow
 
-```mermaid
+```
 sequenceDiagram
     participant Client
     participant N as Nginx
